@@ -16,6 +16,13 @@ project(ExpandedSaturation VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Auto-installing into the system plugin folders makes sense on your own dev
+# machine, but on CI it fails outright (no admin rights to write to e.g.
+# /Library/Application Support/Avid) and isn't wanted anyway — CI just needs
+# the raw build output to zip up. Pass -DJUCE_COPY_PLUGIN_AFTER_BUILD=OFF to
+# disable it (see .github/workflows/build.yml).
+option(JUCE_COPY_PLUGIN_AFTER_BUILD "Install the plugin into system plugin folders after building" ON)
+
 # Point this at your JUCE source directory or use FetchContent
 if(NOT DEFINED JUCE_DIR)
     set(JUCE_DIR "$ENV{HOME}/Downloads/OhmsteadMeter/JUCE")
@@ -30,7 +37,7 @@ juce_add_plugin(ExpandedSaturation
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    COPY_PLUGIN_AFTER_BUILD ${JUCE_COPY_PLUGIN_AFTER_BUILD}
     PLUGIN_MANUFACTURER_CODE Jmce
     PLUGIN_CODE Esa1
     FORMATS VST3 AU AAX Standalone
