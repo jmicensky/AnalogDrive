@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Formal macOS export: configures a fresh Release build (separate from your
+# everyday dev "build" dir so this never picks up stray debug settings),
+# confirms it's a universal (arm64+x86_64) binary, and zips VST3 + AU +
+# Standalone plus install instructions into dist/ ready to hand to testers.
+#
+# AAX is intentionally left OUT of the tester zip (Pro Tools support is a
+# later phase) even though it still builds as part of ExpandedSaturation_All —
+# no harm in it compiling, it's just not something testers need yet.
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+VERSION="$(grep -m1 -oE 'VERSION [0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt | awk '{print $2}')"
+BUILD_DIR="build-release"
+DIST_NAME="ExpandedSaturation-macOS-v${VERSION}"
+DIST_DIR="dist/${DIST_NAME}"
+
+echo "== Configuring Release build (universal arm64+x86_64) =="
+cmake -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
+
+echo "== Building (VST3 + AU + AAX + Standalone) =="
+cmake --build "$BUILD_DIR" --target ExpandedSaturation_All -j"$(sysctl -n hw.ncpu)"
+
+echo "== Verifying universal binary =="
+for f in \
+  "$BUILD_DIR/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3/Contents/MacOS/Expanded Saturation" \
+  "$BUILD_DIR/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component/Contents/MacOS/Expanded Saturation"
+do
+  archs="$(lipo -info "$f" | sed 's/.*: //')"
+  echo "  $f -> $archs"
+  case "$archs" in
+    *x86_64*arm64*|*arm64*x86_64*) ;;
+    *) echo "ERROR: $f is not a universal binary (got: $archs)"; exit 1 ;;
+  esac
+done
+
+echo "== Packaging =="
+rm -rf "$DIST_DIR"
+mkdir -p "$DIST_DIR"
+cp -R "$BUILD_DIR/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3" "$DIST_DIR/"
+cp -R "$BUILD_DIR/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component" "$DIST_DIR/"
+cp -R "$BUILD_DIR/ExpandedSaturation_artefacts/Release/Standalone/Expanded Saturation.app" "$DIST_DIR/"
+cp "scripts/TESTER_README_macOS.txt" "$DIST_DIR/READ ME FIRST.txt"
+
+( cd dist && rm -f "${DIST_NAME}.zip" && zip -rq "${DIST_NAME}.zip" "${DIST_NAME}" )
+
+echo ""
+echo "== Done: dist/${DIST_NAME}.zip =="

@@ -1,0 +1,92 @@
+name: Build
+
+# Formal build pipeline for tester exports: builds macOS (universal, VST3 + AU
+# + Standalone) and Windows (VST3 + Standalone) in Release, and uploads each
+# as a downloadable zip. AAX/Pro Tools is intentionally left out of the
+# Windows job for now (not part of this round of testing) even though it
+# still builds fine as part of the macOS job's ExpandedSaturation_All target.
+#
+# Trigger manually from the Actions tab (workflow_dispatch) whenever you want
+# a fresh tester build, or push a v* tag to cut one automatically.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+env:
+  JUCE_VERSION: "8.0.12"
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone JUCE
+        run: git clone --branch "$JUCE_VERSION" --depth 1 https://github.com/juce-framework/JUCE.git juce
+
+      - name: Configure
+        run: cmake -B build -DJUCE_DIR="${{ github.workspace }}/juce" -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --target ExpandedSaturation_All -j4
+
+      - name: Verify universal binary
+        run: |
+          set -e
+          for f in \
+            "build/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3/Contents/MacOS/Expanded Saturation" \
+            "build/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component/Contents/MacOS/Expanded Saturation"
+          do
+            archs="$(lipo -info "$f" | sed 's/.*: //')"
+            echo "$f -> $archs"
+            case "$archs" in
+              *x86_64*arm64*|*arm64*x86_64*) ;;
+              *) echo "ERROR: not universal"; exit 1 ;;
+            esac
+          done
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp -R "build/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3" dist/
+          cp -R "build/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component" dist/
+          cp -R "build/ExpandedSaturation_artefacts/Release/Standalone/Expanded Saturation.app" dist/
+          cp scripts/TESTER_README_macOS.txt "dist/READ ME FIRST.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ExpandedSaturation-macOS
+          path: dist
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone JUCE
+        shell: cmd
+        run: git clone --branch %JUCE_VERSION% --depth 1 https://github.com/juce-framework/JUCE.git juce
+
+      - name: Configure
+        shell: cmd
+        run: cmake -B build -A x64 -DJUCE_DIR="%GITHUB_WORKSPACE%\juce" -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build (VST3 + Standalone only — no AAX/Pro Tools this round)
+        shell: cmd
+        run: cmake --build build --target ExpandedSaturation_VST3 ExpandedSaturation_Standalone --config Release
+
+      - name: Package
+        shell: cmd
+        run: |
+          mkdir dist
+          xcopy /E /I "build\ExpandedSaturation_artefacts\Release\VST3\Expanded Saturation.vst3" "dist\Expanded Saturation.vst3"
+          xcopy /E /I "build\ExpandedSaturation_artefacts\Release\Standalone" "dist\Standalone"
+          copy scripts\TESTER_README_Windows.txt "dist\READ ME FIRST.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ExpandedSaturation-Windows
+          path: dist
