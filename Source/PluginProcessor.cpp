@@ -1,7 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-ExpandedSaturationProcessor::ExpandedSaturationProcessor()
+AnalogDriveProcessor::AnalogDriveProcessor()
     : AudioProcessor(BusesProperties()
           .withInput ("Input",  juce::AudioChannelSet::stereo(), true)
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
@@ -9,7 +9,7 @@ ExpandedSaturationProcessor::ExpandedSaturationProcessor()
 {
 }
 
-void ExpandedSaturationProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void AnalogDriveProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     int numChannels = getTotalNumInputChannels();
     if (!engineInitialised)
@@ -23,12 +23,12 @@ void ExpandedSaturationProcessor::prepareToPlay(double sampleRate, int samplesPe
     }
 }
 
-void ExpandedSaturationProcessor::releaseResources()
+void AnalogDriveProcessor::releaseResources()
 {
     engine.reset();
 }
 
-void ExpandedSaturationProcessor::processBlock(juce::AudioBuffer<float>& buffer,
+void AnalogDriveProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                                juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -59,19 +59,19 @@ void ExpandedSaturationProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     engine.process(buffer, p);
 }
 
-juce::AudioProcessorEditor* ExpandedSaturationProcessor::createEditor()
+juce::AudioProcessorEditor* AnalogDriveProcessor::createEditor()
 {
-    return new ExpandedSaturationEditor(*this);
+    return new AnalogDriveEditor(*this);
 }
 
-void ExpandedSaturationProcessor::getStateInformation(juce::MemoryBlock& dest)
+void AnalogDriveProcessor::getStateInformation(juce::MemoryBlock& dest)
 {
     auto state = apvts.copyState();
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, dest);
 }
 
-void ExpandedSaturationProcessor::setStateInformation(const void* data, int sizeInBytes)
+void AnalogDriveProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
     if (xml && xml->hasTagName(apvts.state.getType()))
@@ -80,5 +80,5 @@ void ExpandedSaturationProcessor::setStateInformation(const void* data, int size
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new ExpandedSaturationProcessor();
+    return new AnalogDriveProcessor();
 }

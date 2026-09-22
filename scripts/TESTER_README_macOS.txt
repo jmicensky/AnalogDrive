@@ -1,4 +1,4 @@
-Expanded Saturation — macOS Install Instructions (early test build)
+Analog Drive — macOS Install Instructions (early test build)
 ====================================================================
 
 This is an early friends-and-family test build, so it's not yet signed with
@@ -8,14 +8,14 @@ that and get it installed.
 
 1. INSTALL
    Copy these into place:
-     "Expanded Saturation.vst3"        -> ~/Library/Audio/Plug-Ins/VST3/
-     "Expanded Saturation.component"   -> ~/Library/Audio/Plug-Ins/Components/
+     "Analog Drive.vst3"        -> ~/Library/Audio/Plug-Ins/VST3/
+     "Analog Drive.component"   -> ~/Library/Audio/Plug-Ins/Components/
    (The Standalone app doesn't need installing — run it from wherever you
    unzipped it, or drag it to Applications if you want it to stick around.)
 
 2. IF macOS BLOCKS IT ("unidentified developer" / "can't be opened")
    Go to System Settings -> Privacy & Security, scroll down to the Security
-   section, and click "Open Anyway" next to the Expanded Saturation warning.
+   section, and click "Open Anyway" next to the Analog Drive warning.
    Then try opening it again and confirm.
 
    (Alternative: right-click the .component/.vst3/.app -> Open -> confirm

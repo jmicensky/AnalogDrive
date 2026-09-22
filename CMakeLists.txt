@@ -11,7 +11,7 @@ if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 endif()
 
 cmake_minimum_required(VERSION 3.22)
-project(ExpandedSaturation VERSION 1.0.0)
+project(AnalogDrive VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,9 +29,9 @@ if(NOT DEFINED JUCE_DIR)
 endif()
 add_subdirectory(${JUCE_DIR} JUCE_build)
 
-juce_add_plugin(ExpandedSaturation
+juce_add_plugin(AnalogDrive
     COMPANY_NAME "Saturation Sounds"
-    BUNDLE_ID "com.saturationsounds.expandedsaturation"
+    BUNDLE_ID "com.saturationsounds.analogdrive"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
@@ -39,12 +39,12 @@ juce_add_plugin(ExpandedSaturation
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD ${JUCE_COPY_PLUGIN_AFTER_BUILD}
     PLUGIN_MANUFACTURER_CODE Jmce
-    PLUGIN_CODE Esa1
+    PLUGIN_CODE Adrv
     FORMATS VST3 AU AAX Standalone
-    PRODUCT_NAME "Expanded Saturation"
+    PRODUCT_NAME "Analog Drive"
 )
 
-juce_generate_juce_header(ExpandedSaturation)
+juce_generate_juce_header(AnalogDrive)
 
 # Factory presets — any XML dropped into Presets/Factory/ before a build gets
 # embedded automatically as a read-only on-board preset (see PresetManager.cpp,
@@ -57,7 +57,7 @@ file(GLOB FACTORY_PRESET_FILES CONFIGURE_DEPENDS
 
 # Curated set of bundled hardware profiles — kept in sync by hand with
 # kBuiltInProfiles in Source/ModelManager.cpp.
-juce_add_binary_data(ExpandedSaturation_BinaryData
+juce_add_binary_data(AnalogDrive_BinaryData
     SOURCES
         ProfilerModels/SystemCalExperiment_Capi/SystemCalExperiment_Capi_model.json
         ProfilerModels/AmtekSS_Bias_Standard/AmtekSS_Bias_Standard_model.json
@@ -65,7 +65,7 @@ juce_add_binary_data(ExpandedSaturation_BinaryData
         ${FACTORY_PRESET_FILES}
 )
 
-target_sources(ExpandedSaturation
+target_sources(AnalogDrive
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
@@ -92,16 +92,16 @@ target_sources(ExpandedSaturation
         Source/RackLookAndFeel.cpp
 )
 
-target_compile_definitions(ExpandedSaturation
+target_compile_definitions(AnalogDrive
     PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
 )
 
-target_link_libraries(ExpandedSaturation
+target_link_libraries(AnalogDrive
     PRIVATE
-        ExpandedSaturation_BinaryData
+        AnalogDrive_BinaryData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC

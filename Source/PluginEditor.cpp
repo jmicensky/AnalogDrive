@@ -47,7 +47,7 @@ static constexpr int kTopSlotItemW  = (kDistW - 2 * kTopSlotMargin - kTopSlotGap
 static constexpr int kNameplateX    = kDistX + kTopSlotMargin;
 static constexpr int kCurveX        = kNameplateX + kTopSlotItemW + kTopSlotGap;
 
-ExpandedSaturationEditor::ExpandedSaturationEditor(ExpandedSaturationProcessor& p)
+AnalogDriveEditor::AnalogDriveEditor(AnalogDriveProcessor& p)
     : AudioProcessorEditor(&p),
       pluginProcessor(p),
       presetBar(p.getPresetManager()),
@@ -175,13 +175,13 @@ ExpandedSaturationEditor::ExpandedSaturationEditor(ExpandedSaturationProcessor& 
     modelOverlay.refreshFromParameter();
 }
 
-ExpandedSaturationEditor::~ExpandedSaturationEditor()
+AnalogDriveEditor::~AnalogDriveEditor()
 {
     stopTimer();
     setLookAndFeel(nullptr);
 }
 
-void ExpandedSaturationEditor::updateFrequencyResponseDisplay()
+void AnalogDriveEditor::updateFrequencyResponseDisplay()
 {
     const int modelIndex = static_cast<int>(
         *pluginProcessor.apvts.getRawParameterValue(ParamIDs::modelSwitch.getParamID()));
@@ -189,7 +189,7 @@ void ExpandedSaturationEditor::updateFrequencyResponseDisplay()
     frequencyResponseDisplay.setData(model.frFrequencies, model.frMagnitudeDb);
 }
 
-void ExpandedSaturationEditor::refreshMeters()
+void AnalogDriveEditor::refreshMeters()
 {
     auto& eng = pluginProcessor.getAudioEngine();
     inputMeter.pushLevels(eng.getInputPeakL(),   eng.getInputPeakR());
@@ -198,7 +198,7 @@ void ExpandedSaturationEditor::refreshMeters()
 
 // ── Static chassis helpers (ported from SaturationModel1) ──────────────────────
 
-void ExpandedSaturationEditor::drawScrew(juce::Graphics& g, float cx, float cy)
+void AnalogDriveEditor::drawScrew(juce::Graphics& g, float cx, float cy)
 {
     const float r = 5.5f;
     juce::ColourGradient grad(juce::Colour(0xffaaaaaa), cx - r * 0.22f, cy - r * 0.25f,
@@ -213,7 +213,7 @@ void ExpandedSaturationEditor::drawScrew(juce::Graphics& g, float cx, float cy)
     g.drawLine(cx, cy - 3.0f, cx, cy + 3.0f, 1.0f);
 }
 
-void ExpandedSaturationEditor::drawMountingHole(juce::Graphics& g, float cx, float cy)
+void AnalogDriveEditor::drawMountingHole(juce::Graphics& g, float cx, float cy)
 {
     const float r1 = 7.0f, r2 = 4.0f;
     juce::ColourGradient grad(juce::Colour(0xff2a2a2a), cx - r1 * 0.1f, cy - r1 * 0.12f,
@@ -228,7 +228,7 @@ void ExpandedSaturationEditor::drawMountingHole(juce::Graphics& g, float cx, flo
     g.drawEllipse(cx - r2, cy - r2, r2 * 2.0f, r2 * 2.0f, 0.5f);
 }
 
-void ExpandedSaturationEditor::drawSectionLabel(juce::Graphics& g, const juce::String& text, int x, int y, int w)
+void AnalogDriveEditor::drawSectionLabel(juce::Graphics& g, const juce::String& text, int x, int y, int w)
 {
     g.setColour(juce::Colour(0xfff0f0f0));
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 13.0f, juce::Font::bold));
@@ -237,7 +237,7 @@ void ExpandedSaturationEditor::drawSectionLabel(juce::Graphics& g, const juce::S
 
 // ── paint ────────────────────────────────────────────────────────────────────
 
-void ExpandedSaturationEditor::paint(juce::Graphics& g)
+void AnalogDriveEditor::paint(juce::Graphics& g)
 {
     const float fW  = (float)kFaceW;
     const float fH  = (float)kTotalH;
@@ -334,7 +334,7 @@ void ExpandedSaturationEditor::paint(juce::Graphics& g)
     drawNameplate(g);
 }
 
-void ExpandedSaturationEditor::drawNameplate(juce::Graphics& g)
+void AnalogDriveEditor::drawNameplate(juce::Graphics& g)
 {
     const float npX = (float)kNameplateX;
     const float npY = (float)kTopSlotY;
@@ -416,7 +416,7 @@ void ExpandedSaturationEditor::drawNameplate(juce::Graphics& g)
 
 // ── resized ──────────────────────────────────────────────────────────────────
 
-void ExpandedSaturationEditor::resized()
+void AnalogDriveEditor::resized()
 {
     const int presetBarW = juce::jmin(300, kFaceW - 40);
     presetBar.setBounds(kFaceX + (kFaceW - presetBarW) / 2, kPresetBarY, presetBarW, kPresetBarH);

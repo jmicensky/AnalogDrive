@@ -1,4 +1,4 @@
-Expanded Saturation — Windows Install Instructions (early test build)
+Analog Drive — Windows Install Instructions (early test build)
 =====================================================================
 
 This is an early friends-and-family test build. It isn't signed with a
@@ -8,7 +8,7 @@ from it. That's expected for this early test round.
 
 1. INSTALL
    Copy the folder:
-     "Expanded Saturation.vst3"  ->  C:\Program Files\Common Files\VST3\
+     "Analog Drive.vst3"  ->  C:\Program Files\Common Files\VST3\
    (The Standalone app doesn't need installing — run it directly from the
    "Standalone" folder.)
 

@@ -5,7 +5,7 @@
 # Standalone plus install instructions into dist/ ready to hand to testers.
 #
 # AAX is intentionally left OUT of the tester zip (Pro Tools support is a
-# later phase) even though it still builds as part of ExpandedSaturation_All —
+# later phase) even though it still builds as part of AnalogDrive_All —
 # no harm in it compiling, it's just not something testers need yet.
 set -euo pipefail
 
@@ -14,19 +14,19 @@ cd "$ROOT_DIR"
 
 VERSION="$(grep -m1 -oE 'VERSION [0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt | awk '{print $2}')"
 BUILD_DIR="build-release"
-DIST_NAME="ExpandedSaturation-macOS-v${VERSION}"
+DIST_NAME="AnalogDrive-macOS-v${VERSION}"
 DIST_DIR="dist/${DIST_NAME}"
 
 echo "== Configuring Release build (universal arm64+x86_64) =="
 cmake -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
 
 echo "== Building (VST3 + AU + AAX + Standalone) =="
-cmake --build "$BUILD_DIR" --target ExpandedSaturation_All -j"$(sysctl -n hw.ncpu)"
+cmake --build "$BUILD_DIR" --target AnalogDrive_All -j"$(sysctl -n hw.ncpu)"
 
 echo "== Verifying universal binary =="
 for f in \
-  "$BUILD_DIR/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3/Contents/MacOS/Expanded Saturation" \
-  "$BUILD_DIR/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component/Contents/MacOS/Expanded Saturation"
+  "$BUILD_DIR/AnalogDrive_artefacts/Release/VST3/Analog Drive.vst3/Contents/MacOS/Analog Drive" \
+  "$BUILD_DIR/AnalogDrive_artefacts/Release/AU/Analog Drive.component/Contents/MacOS/Analog Drive"
 do
   archs="$(lipo -info "$f" | sed 's/.*: //')"
   echo "  $f -> $archs"
@@ -39,9 +39,9 @@ done
 echo "== Packaging =="
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
-cp -R "$BUILD_DIR/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3" "$DIST_DIR/"
-cp -R "$BUILD_DIR/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component" "$DIST_DIR/"
-cp -R "$BUILD_DIR/ExpandedSaturation_artefacts/Release/Standalone/Expanded Saturation.app" "$DIST_DIR/"
+cp -R "$BUILD_DIR/AnalogDrive_artefacts/Release/VST3/Analog Drive.vst3" "$DIST_DIR/"
+cp -R "$BUILD_DIR/AnalogDrive_artefacts/Release/AU/Analog Drive.component" "$DIST_DIR/"
+cp -R "$BUILD_DIR/AnalogDrive_artefacts/Release/Standalone/Analog Drive.app" "$DIST_DIR/"
 cp "scripts/TESTER_README_macOS.txt" "$DIST_DIR/READ ME FIRST.txt"
 
 ( cd dist && rm -f "${DIST_NAME}.zip" && zip -rq "${DIST_NAME}.zip" "${DIST_NAME}" )

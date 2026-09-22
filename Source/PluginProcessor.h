@@ -4,11 +4,11 @@
 #include "PluginParameters.h"
 #include "PresetManager.h"
 
-class ExpandedSaturationProcessor : public juce::AudioProcessor
+class AnalogDriveProcessor : public juce::AudioProcessor
 {
 public:
-    ExpandedSaturationProcessor();
-    ~ExpandedSaturationProcessor() override = default;
+    AnalogDriveProcessor();
+    ~AnalogDriveProcessor() override = default;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -17,7 +17,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
-    const juce::String getName() const override { return "Expanded Saturation"; }
+    const juce::String getName() const override { return "Analog Drive"; }
 
     bool   acceptsMidi()  const override { return false; }
     bool   producesMidi() const override { return false; }
@@ -42,5 +42,5 @@ private:
     bool engineInitialised = false;
     PresetManager presetManager { apvts };
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExpandedSaturationProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnalogDriveProcessor)
 };

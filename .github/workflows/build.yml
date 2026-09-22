@@ -4,7 +4,7 @@ name: Build
 # + Standalone) and Windows (VST3 + Standalone) in Release, and uploads each
 # as a downloadable zip. AAX/Pro Tools is intentionally left out of the
 # Windows job for now (not part of this round of testing) even though it
-# still builds fine as part of the macOS job's ExpandedSaturation_All target.
+# still builds fine as part of the macOS job's AnalogDrive_All target.
 #
 # Trigger manually from the Actions tab (workflow_dispatch) whenever you want
 # a fresh tester build, or push a v* tag to cut one automatically.
@@ -31,14 +31,14 @@ jobs:
         run: cmake -B build -DJUCE_DIR="${{ github.workspace }}/juce" -DCMAKE_BUILD_TYPE=Release -DJUCE_COPY_PLUGIN_AFTER_BUILD=OFF
 
       - name: Build
-        run: cmake --build build --target ExpandedSaturation_All -j4
+        run: cmake --build build --target AnalogDrive_All -j4
 
       - name: Verify universal binary
         run: |
           set -e
           for f in \
-            "build/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3/Contents/MacOS/Expanded Saturation" \
-            "build/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component/Contents/MacOS/Expanded Saturation"
+            "build/AnalogDrive_artefacts/Release/VST3/Analog Drive.vst3/Contents/MacOS/Analog Drive" \
+            "build/AnalogDrive_artefacts/Release/AU/Analog Drive.component/Contents/MacOS/Analog Drive"
           do
             archs="$(lipo -info "$f" | sed 's/.*: //')"
             echo "$f -> $archs"
@@ -51,14 +51,14 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist
-          cp -R "build/ExpandedSaturation_artefacts/Release/VST3/Expanded Saturation.vst3" dist/
-          cp -R "build/ExpandedSaturation_artefacts/Release/AU/Expanded Saturation.component" dist/
-          cp -R "build/ExpandedSaturation_artefacts/Release/Standalone/Expanded Saturation.app" dist/
+          cp -R "build/AnalogDrive_artefacts/Release/VST3/Analog Drive.vst3" dist/
+          cp -R "build/AnalogDrive_artefacts/Release/AU/Analog Drive.component" dist/
+          cp -R "build/AnalogDrive_artefacts/Release/Standalone/Analog Drive.app" dist/
           cp scripts/TESTER_README_macOS.txt "dist/READ ME FIRST.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ExpandedSaturation-macOS
+          name: AnalogDrive-macOS
           path: dist
 
   windows:
@@ -76,17 +76,17 @@ jobs:
 
       - name: Build (VST3 + Standalone only — no AAX/Pro Tools this round)
         shell: cmd
-        run: cmake --build build --target ExpandedSaturation_VST3 ExpandedSaturation_Standalone --config Release
+        run: cmake --build build --target AnalogDrive_VST3 AnalogDrive_Standalone --config Release
 
       - name: Package
         shell: cmd
         run: |
           mkdir dist
-          xcopy /E /I "build\ExpandedSaturation_artefacts\Release\VST3\Expanded Saturation.vst3" "dist\Expanded Saturation.vst3"
-          xcopy /E /I "build\ExpandedSaturation_artefacts\Release\Standalone" "dist\Standalone"
+          xcopy /E /I "build\AnalogDrive_artefacts\Release\VST3\Analog Drive.vst3" "dist\Analog Drive.vst3"
+          xcopy /E /I "build\AnalogDrive_artefacts\Release\Standalone" "dist\Standalone"
           copy scripts\TESTER_README_Windows.txt "dist\READ ME FIRST.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ExpandedSaturation-Windows
+          name: AnalogDrive-Windows
           path: dist

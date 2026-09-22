@@ -54,12 +54,12 @@ public:
     }
 };
 
-class ExpandedSaturationEditor : public juce::AudioProcessorEditor,
+class AnalogDriveEditor : public juce::AudioProcessorEditor,
                                  private juce::Timer
 {
 public:
-    explicit ExpandedSaturationEditor(ExpandedSaturationProcessor&);
-    ~ExpandedSaturationEditor() override;
+    explicit AnalogDriveEditor(AnalogDriveProcessor&);
+    ~AnalogDriveEditor() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -78,7 +78,7 @@ private:
     void updateFrequencyResponseDisplay();
     void refreshMeters();
 
-    ExpandedSaturationProcessor& pluginProcessor;
+    AnalogDriveProcessor& pluginProcessor;
 
     RackLookAndFeel rackLookAndFeel;
 
@@ -128,5 +128,5 @@ private:
 
     juce::Image textureImage;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExpandedSaturationEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AnalogDriveEditor)
 };
