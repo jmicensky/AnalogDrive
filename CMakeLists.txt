@@ -29,6 +29,19 @@ if(NOT DEFINED JUCE_DIR)
 endif()
 add_subdirectory(${JUCE_DIR} JUCE_build)
 
+# Real Avid AAX SDK (not JUCE's bundled placeholder stub) — needed to build an
+# AAX plugin that can eventually be PACE-signed for real Pro Tools. Kept
+# outside the repo (sibling to JUCE_DIR, same convention) since Avid's SDK
+# license doesn't want it freely redistributed, and CI/other machines won't
+# have it — falls back to JUCE's bundled stub automatically if this path
+# doesn't exist, so this is safe to leave in for everyone.
+if(NOT DEFINED AAX_SDK_DIR)
+    set(AAX_SDK_DIR "$ENV{HOME}/Downloads/OhmsteadMeter/aax-sdk-2-9-0")
+endif()
+if(EXISTS "${AAX_SDK_DIR}")
+    juce_set_aax_sdk_path("${AAX_SDK_DIR}")
+endif()
+
 juce_add_plugin(AnalogDrive
     COMPANY_NAME "Saturation Sounds"
     BUNDLE_ID "com.saturationsounds.analogdrive"
