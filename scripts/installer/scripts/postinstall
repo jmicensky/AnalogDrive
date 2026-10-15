@@ -1,0 +1,29 @@
+#!/bin/bash
+# Runs as root after the plugin packages are installed. Nothing here is
+# allowed to fail the install, so every step is best-effort.
+
+CONSOLE_USER="$(stat -f%Su /dev/console)"
+USER_HOME="$(dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
+
+# Earlier test builds were copied by hand into ~/Library. Those copies are
+# still quarantined, and DAWs may pick them over the fresh system-wide
+# install, so remove them (ours only, matched by exact name).
+if [ -n "$USER_HOME" ] && [ -d "$USER_HOME" ]; then
+  rm -rf "$USER_HOME/Library/Audio/Plug-Ins/VST3/Analog Drive.vst3"
+  rm -rf "$USER_HOME/Library/Audio/Plug-Ins/Components/Analog Drive.component"
+fi
+
+# Belt and braces: make sure nothing we installed carries a quarantine flag.
+for p in \
+  "/Library/Audio/Plug-Ins/VST3/Analog Drive.vst3" \
+  "/Library/Audio/Plug-Ins/Components/Analog Drive.component" \
+  "/Applications/Analog Drive.app"
+do
+  [ -e "$p" ] && xattr -dr com.apple.quarantine "$p" 2>/dev/null
+done
+
+# Forces macOS to rebuild its Audio Unit list so Logic/GarageBand see the new
+# component without a reboot.
+killall -9 AudioComponentRegistrar 2>/dev/null
+
+exit 0

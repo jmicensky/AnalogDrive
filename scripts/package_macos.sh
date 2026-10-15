@@ -39,9 +39,10 @@ done
 echo "== Packaging =="
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
-cp -R "$BUILD_DIR/AnalogDrive_artefacts/Release/VST3/Analog Drive.vst3" "$DIST_DIR/"
-cp -R "$BUILD_DIR/AnalogDrive_artefacts/Release/AU/Analog Drive.component" "$DIST_DIR/"
-cp -R "$BUILD_DIR/AnalogDrive_artefacts/Release/Standalone/Analog Drive.app" "$DIST_DIR/"
+# Testers get the installer only, not loose bundles: hand-copied bundles stay
+# quarantined and won't load in Ableton/Logic (see build_installer_macos.sh).
+scripts/build_installer_macos.sh "$BUILD_DIR/AnalogDrive_artefacts/Release" \
+  "$DIST_DIR/AnaDrive_Installer_1.pkg" "$VERSION"
 cp "scripts/TESTER_README_macOS.txt" "$DIST_DIR/READ ME FIRST.txt"
 
 ( cd dist && rm -f "${DIST_NAME}.zip" && zip -rq "${DIST_NAME}.zip" "${DIST_NAME}" )

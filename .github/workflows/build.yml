@@ -51,9 +51,9 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist
-          cp -R "build/AnalogDrive_artefacts/Release/VST3/Analog Drive.vst3" dist/
-          cp -R "build/AnalogDrive_artefacts/Release/AU/Analog Drive.component" dist/
-          cp -R "build/AnalogDrive_artefacts/Release/Standalone/Analog Drive.app" dist/
+          VERSION="$(grep -m1 -oE 'VERSION [0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt | awk '{print $2}')"
+          bash scripts/build_installer_macos.sh build/AnalogDrive_artefacts/Release \
+            "dist/AnaDrive_Installer_1.pkg" "$VERSION"
           cp scripts/TESTER_README_macOS.txt "dist/READ ME FIRST.txt"
 
       - uses: actions/upload-artifact@v4
@@ -78,13 +78,21 @@ jobs:
         shell: cmd
         run: cmake --build build --target AnalogDrive_VST3 AnalogDrive_Standalone --config Release
 
+      # Testers get the installer only (VST3 -> Common Files\VST3, app ->
+      # Program Files), mirroring the macOS .pkg.
       - name: Package
-        shell: cmd
+        shell: pwsh
         run: |
-          mkdir dist
-          xcopy /E /I "build\AnalogDrive_artefacts\Release\VST3\Analog Drive.vst3" "dist\Analog Drive.vst3"
-          xcopy /E /I "build\AnalogDrive_artefacts\Release\Standalone" "dist\Standalone"
-          copy scripts\TESTER_README_Windows.txt "dist\READ ME FIRST.txt"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item scripts\TESTER_README_Windows.txt "dist\READ ME FIRST.txt"
+          choco install innosetup -y --no-progress
+          $version = (Select-String -Path CMakeLists.txt -Pattern 'VERSION (\d+\.\d+\.\d+)' | Select-Object -First 1).Matches[0].Groups[1].Value
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            "/DAppVersion=$version" `
+            "/DBuildDir=$env:GITHUB_WORKSPACE\build\AnalogDrive_artefacts\Release" `
+            "/O$env:GITHUB_WORKSPACE\dist" `
+            scripts\installer\windows\AnalogDrive.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
       - uses: actions/upload-artifact@v4
         with:
