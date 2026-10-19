@@ -11,7 +11,9 @@ AnalogDriveProcessor::AnalogDriveProcessor()
 
 void AnalogDriveProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    int numChannels = getTotalNumInputChannels();
+    // processBlock's buffer has max(in, out) channels — e.g. 2 for Logic's
+    // mono-in/stereo-out tracks — so size the engine for that, not just inputs.
+    int numChannels = std::max(getTotalNumInputChannels(), getTotalNumOutputChannels());
     if (!engineInitialised)
     {
         engine.initialise(sampleRate, samplesPerBlock, numChannels);
@@ -51,8 +53,6 @@ void AnalogDriveProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     p.modelDrive   = *apvts.getRawParameterValue(ParamIDs::modelDrive.getParamID());
     p.modelOutputDb = *apvts.getRawParameterValue(ParamIDs::modelOutput.getParamID());
     p.modelBypass  = *apvts.getRawParameterValue(ParamIDs::modelBypass.getParamID()) > 0.5f;
-
-    p.qualityModeHF = *apvts.getRawParameterValue(ParamIDs::qualityMode.getParamID()) > 0.5f;
 
     setLatencySamples(engine.getLatencySamples());
 

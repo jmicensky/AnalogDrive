@@ -3,7 +3,6 @@
 #include "PluginProcessor.h"
 #include "RackLookAndFeel.h"
 #include "ModelSelectorComponent.h"
-#include "ModelSwitchComponent.h"
 #include "KnobComponent.h"
 #include "FilterComponent.h"
 #include "SpectrumDisplay.h"
@@ -108,14 +107,12 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> filterSectionBypassAttach;
 
     // ── Modeling (hardware profile) section ─────────────────────────────────
-    ModelSwitchComponent modelSwitch;
+    ModelSelectorComponent modelSelector;
     KnobComponent modelDriveKnob;
     KnobComponent modelOutputKnob;
     EnableLed     modelBypassLed;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modelBypassAttach;
 
-    juce::TextButton lowLatBtn  { "Lo" };
-    juce::TextButton highLatBtn { "Hi" };
 
     // ── Bypass darken/blur overlays — added AFTER each section's own components
     // so they paint on top; see BypassOverlay.h. ───────────────────────────────

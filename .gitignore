@@ -6,3 +6,4 @@ dist/
 .vs/
 out/
 Installers/
+__pycache__/

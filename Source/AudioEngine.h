@@ -13,11 +13,9 @@
 // rate deliberately (H1 is redesigned per-rate via rebuildFirAtSampleRate, but H2
 // is a fixed discrete-time kernel with no per-rate redesign path), and only the
 // waveshaper lookup table ran oversampled. Wrapping the WHOLE chain in one shared
-// oversampled pass means H1 gets correctly redesigned for the oversampled rate,
-// but H2 now effectively runs at 2x without redesign — a small, accepted
-// imprecision (shifts H2's effective time constant) in exchange for the simpler,
-// lower-CPU single-oversample architecture the user asked for. Revisit if the
-// modeling section's character sounds measurably different from SaturationModel1.
+// oversampled pass means L1 gets redesigned for the oversampled rate, and the
+// fixed per-sample kernels (H2, L2) are re-timed from each profile's capture
+// rate to the oversampled rate by ModelManager::buildForSampleRate.
 class AudioEngine
 {
 public:
@@ -43,12 +41,10 @@ public:
         bool  filterBypass;   // master bypass for the whole section
 
         // Modeling — always 100% wet; "amount" is drive/output only
-        int   modelSwitch;    // 0=CAPI 1=Amptek
+        int   modelSwitch;    // index into ModelManager's built-in profiles
         float modelDrive;
         float modelOutputDb;
         bool  modelBypass;
-
-        bool  qualityModeHF;
     };
 
     void process(juce::AudioBuffer<float>& buffer, const Params& p);
@@ -67,10 +63,8 @@ public:
     ModelManager& getModelManager() { return modelManager; }
 
 private:
-    void setupOversampling(int numChannels, int maxBlockSize, bool qualityHF = true);
+    void setupOversampling(int numChannels, int maxBlockSize);
     void rebuildAtOversampledRate();
-
-    bool lastQualityHF = true;
 
     // ── RBJ biquad helpers (TILT + Air shelf) — computed for the OVERSAMPLED rate,
     // since they now run inside the shared oversampled block. ─────────────────

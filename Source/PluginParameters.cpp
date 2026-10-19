@@ -1,5 +1,6 @@
 #include "PluginParameters.h"
 #include "SaturationModeEngine.h"
+#include "ModelManager.h"
 
 juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 {
@@ -49,8 +50,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
         ParamIDs::filterBypass, "Filter Section Bypass", false));
 
     // ── Modeling ──────────────────────────────────────────────────────────────
-    params.push_back(std::make_unique<juce::AudioParameterInt>(
-        ParamIDs::modelSwitch, "Model", 0, 1, 0));  // 0=CAPI 1=Amptek
+    // Choice (not Int) so hosts show profile names in automation lanes. State
+    // saves the index, so pre-existing sessions keep CAPI=0 / Amptek=1.
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        ParamIDs::modelSwitch, "Model", ModelManager::getBuiltInModelNames(), 0));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         ParamIDs::modelDrive, "Model Drive",
@@ -63,10 +66,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         ParamIDs::modelBypass, "Model Bypass", false));
-
-    // Quality / latency mode — default Low (IIR polyphase, ~6 sample latency)
-    params.push_back(std::make_unique<juce::AudioParameterBool>(
-        ParamIDs::qualityMode, "Quality Mode", false));  // false = Low
 
     return { params.begin(), params.end() };
 }

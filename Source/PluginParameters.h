@@ -21,14 +21,10 @@ namespace ParamIDs
     inline const juce::ParameterID filterBypass  { "filterBypass",  1 };  // master bypass for the whole section
 
     // ── Modeling section (last in the chain, always 100% wet) ───────────────────
-    inline const juce::ParameterID modelSwitch { "modelSwitch", 1 };  // 0=CAPI 1=Amptek
+    inline const juce::ParameterID modelSwitch { "modelSwitch", 1 };  // index into kBuiltInProfiles (ModelManager.cpp)
     inline const juce::ParameterID modelDrive  { "modelDrive",  1 };  // capped, see kModelDriveMax
     inline const juce::ParameterID modelOutput { "modelOutput", 1 };
     inline const juce::ParameterID modelBypass { "modelBypass", 1 };
-
-    // Oversampling filter type for the one shared oversampled pass wrapping the
-    // whole chain (IIR polyphase = low latency, FIR equiripple = phase-accurate).
-    inline const juce::ParameterID qualityMode { "qualityMode", 1 };
 
     // Modeling drive is capped below the old plugin's full range: with the
     // algorithmic section now cascaded in front of it, two gain/drive stages

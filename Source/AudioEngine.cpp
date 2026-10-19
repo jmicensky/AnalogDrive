@@ -59,13 +59,14 @@ float AudioEngine::applyBiquad(float x, BiquadState& s, const BiquadCoeffs& c)
 
 // ── Setup ────────────────────────────────────────────────────────────────────
 
-void AudioEngine::setupOversampling(int numChannels, int maxBlockSize, bool qualityHF)
+void AudioEngine::setupOversampling(int numChannels, int maxBlockSize)
 {
+    // Low-latency IIR polyphase halfband (~6 samples). A phase-accurate FIR
+    // option used to be selectable, but it made no audible difference.
     using FT = juce::dsp::Oversampling<float>::FilterType;
-    const auto filterType = qualityHF ? FT::filterHalfBandFIREquiripple
-                                      : FT::filterHalfBandPolyphaseIIR;
-    const bool maxQuality = qualityHF;
-    const bool intLatency = !qualityHF;
+    const auto filterType = FT::filterHalfBandPolyphaseIIR;
+    const bool maxQuality = false;
+    const bool intLatency = true;
 
     channelOversamplers.clear();
     channelFilters.clear();
@@ -79,7 +80,6 @@ void AudioEngine::setupOversampling(int numChannels, int maxBlockSize, bool qual
         channelFilters.push_back(std::make_unique<juce::dsp::StateVariableTPTFilter<float>>());
     }
 
-    lastQualityHF = qualityHF;
     rebuildAtOversampledRate();
 }
 
@@ -114,7 +114,7 @@ void AudioEngine::initialise(double sampleRate, int maxBlockSize, int numChannel
     currentMaxBlock   = maxBlockSize;
 
     modelManager.loadBuiltInModels(sampleRate);
-    setupOversampling(numChannels, maxBlockSize, lastQualityHF);  // also rebuilds FIRs at 2x
+    setupOversampling(numChannels, maxBlockSize);  // also rebuilds FIRs at 2x
 
     const double osRate = sampleRate * 2.0;
     satProc.prepare(osRate, maxBlockSize * 2, numChannels);
@@ -132,7 +132,7 @@ void AudioEngine::prepare(double sampleRate, int maxBlockSize, int numChannels)
     currentMaxBlock   = maxBlockSize;
 
     if (chChanged || blkChanged || srChanged || channelOversamplers.empty())
-        setupOversampling(numChannels, maxBlockSize, lastQualityHF);
+        setupOversampling(numChannels, maxBlockSize);
     else if (srChanged)
         rebuildAtOversampledRate();
 
@@ -159,9 +159,6 @@ void AudioEngine::process(juce::AudioBuffer<float>& buffer, const Params& p)
     const int numSamples      = buffer.getNumSamples();
     const int numChannels     = buffer.getNumChannels();
     const int numProcChannels = std::min(numChannels, 2);
-
-    if (p.qualityModeHF != lastQualityHF)
-        setupOversampling(numChannels, currentMaxBlock, p.qualityModeHF);
 
     // ── Input metering (raw, pre-processing) ──────────────────────────────────
     {

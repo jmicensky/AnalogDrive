@@ -30,11 +30,9 @@ static constexpr int kDistX  = kFaceX + kColPad;
 static constexpr int kFiltX  = kDistX + kDistW + kColGap;
 static constexpr int kModelX = kFiltX + kFiltW + kColGap;
 
-// Modeling column: Drive / [latency buttons, stacked] / Output.
-static constexpr int kModelKnobY    = kRackY + 94;  // leaves room for modelSwitch (ends kRackY+78) + the LATENCY label above the buttons
-static constexpr int kModelBtnStripW = 60;
-static constexpr int kModelKnobW    = (kModelW - kModelBtnStripW) / 2;
-static constexpr int kModelBtnX     = kModelX + kModelKnobW;
+// Modeling column: Drive / Output side by side under the profile dropdown.
+static constexpr int kModelKnobY    = kRackY + 94;
+static constexpr int kModelKnobW    = kModelW / 2;
 
 // Distortion column's top slot: shared side-by-side between the nameplate
 // (left) and the transfer-curve display (right) — Filter and Modeling each get
@@ -53,12 +51,12 @@ AnalogDriveEditor::AnalogDriveEditor(AnalogDriveProcessor& p)
       presetBar(p.getPresetManager()),
       filterShapeDisplay(p.apvts),
       transferCurveDisplay(p.apvts),
-      distortionSelector(p.apvts, SaturationModeEngine::getModeNames()),
+      distortionSelector(p.apvts, ParamIDs::algoMode.getParamID(), SaturationModeEngine::getModeNames()),
       distortionDriveKnob (p.apvts, ParamIDs::algoDrive.getParamID(),  "DRIVE"),
       distortionOutputKnob(p.apvts, ParamIDs::algoOutput.getParamID(), "OUTPUT"),
       distortionMixKnob   (p.apvts, ParamIDs::algoMix.getParamID(),    "MIX"),
       filterComponent(p.apvts),
-      modelSwitch(p.apvts),
+      modelSelector(p.apvts, ParamIDs::modelSwitch.getParamID(), ModelManager::getBuiltInModelNames()),
       modelDriveKnob (p.apvts, ParamIDs::modelDrive.getParamID(),  "DRIVE"),
       modelOutputKnob(p.apvts, ParamIDs::modelOutput.getParamID(), "OUTPUT"),
       distortionOverlay(p.apvts, ParamIDs::algoBypass.getParamID()),
@@ -80,8 +78,8 @@ AnalogDriveEditor::AnalogDriveEditor(AnalogDriveProcessor& p)
 
     addAndMakeVisible(filterComponent);
 
-    modelSwitch.onSelectionChanged = [this](int) { updateFrequencyResponseDisplay(); };
-    addAndMakeVisible(modelSwitch);
+    modelSelector.onSelectionChanged = [this](int) { updateFrequencyResponseDisplay(); };
+    addAndMakeVisible(modelSelector);
     addAndMakeVisible(modelDriveKnob);
     addAndMakeVisible(modelOutputKnob);
 
@@ -110,28 +108,6 @@ AnalogDriveEditor::AnalogDriveEditor(AnalogDriveProcessor& p)
     addAndMakeVisible(airEnableLed);
     addAndMakeVisible(filterSectionBypassLed);
     addAndMakeVisible(modelBypassLed);
-
-    for (auto* btn : { &lowLatBtn, &highLatBtn })
-    {
-        btn->setRadioGroupId(44);
-        btn->setClickingTogglesState(true);
-        addAndMakeVisible(btn);
-    }
-    bool isHF = *p.apvts.getRawParameterValue(ParamIDs::qualityMode.getParamID()) > 0.5f;
-    lowLatBtn .setToggleState(!isHF, juce::dontSendNotification);
-    highLatBtn.setToggleState( isHF, juce::dontSendNotification);
-    lowLatBtn.onClick = [this, &apvts = p.apvts] {
-        if (auto* param = apvts.getParameter(ParamIDs::qualityMode.getParamID()))
-            param->setValueNotifyingHost(0.0f);
-        lowLatBtn .setToggleState(true,  juce::dontSendNotification);
-        highLatBtn.setToggleState(false, juce::dontSendNotification);
-    };
-    highLatBtn.onClick = [this, &apvts = p.apvts] {
-        if (auto* param = apvts.getParameter(ParamIDs::qualityMode.getParamID()))
-            param->setValueNotifyingHost(1.0f);
-        lowLatBtn .setToggleState(false, juce::dontSendNotification);
-        highLatBtn.setToggleState(true,  juce::dontSendNotification);
-    };
 
     distortionDriveKnob.getSlider().textFromValueFunction = [](double v) {
         return juce::String(juce::roundToInt(v * 100)) + "%";
@@ -323,12 +299,6 @@ void AnalogDriveEditor::paint(juce::Graphics& g)
     g.drawText("BYP", kFiltX  + 18, kRackY + 12, 40, 16, juce::Justification::centredLeft, false);
     g.drawText("BYP", kModelX + 18, kRackY + 12, 40, 16, juce::Justification::centredLeft, false);
 
-    // "LATENCY" label directly above the stacked High/Low buttons
-    g.setColour(juce::Colour(0xff4a6a6a));
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::plain));
-    g.drawText("LATENCY", kModelBtnX - 10, kModelKnobY - 16, kModelBtnStripW + 20, 14,
-               juce::Justification::centred, false);
-
     // ── Brand nameplate — fills the distortion column's otherwise-empty top slot
     // (Filter and Modeling each have a shape display there; Distortion doesn't). ─
     drawNameplate(g);
@@ -442,25 +412,11 @@ void AnalogDriveEditor::resized()
     filterSectionBypassLed.setBounds(kFiltX, kRackY + 14, 14, 14);
 
     // ── Modeling column ────────────────────────────────────────────────────────
-    modelSwitch.setBounds(kModelX + kModelW / 2 - 90, kRackY + 34, 180, 44);
+    modelSelector.setBounds(kModelX + kModelW / 2 - 90, kRackY + 34, 180, 28);
     {
-        // Drive / [latency buttons] / Output, left to right — the two latency
-        // buttons sit in the gap between the knobs, stacked vertically with
-        // High on top and Low on the bottom.
         const int knobH = 72;  // kModelKnobY + 72 = kRackY+166, leaving a 6px bottom margin like the rest of the strip
-
-        modelDriveKnob .setBounds(kModelX,                              kModelKnobY, kModelKnobW, knobH);
-        modelOutputKnob.setBounds(kModelBtnX + kModelBtnStripW,         kModelKnobY,
-                                  kModelW - kModelKnobW - kModelBtnStripW, knobH);
-
-        // Buttons themselves are ~1/3 the size of the reserved strip (60x32 ->
-        // 20x11), centered within it — the strip width itself stays put since
-        // the knobs on either side are already sized against it.
-        constexpr int btnW = 26, btnH = 15, btnGap = 6;
-        const int btnX = kModelBtnX + (kModelBtnStripW - btnW) / 2;
-        const int stackY = kModelKnobY + (knobH - (btnH * 2 + btnGap)) / 2;
-        highLatBtn.setBounds(btnX, stackY,                   btnW, btnH);
-        lowLatBtn .setBounds(btnX, stackY + btnH + btnGap,   btnW, btnH);
+        modelDriveKnob .setBounds(kModelX,               kModelKnobY, kModelKnobW,           knobH);
+        modelOutputKnob.setBounds(kModelX + kModelKnobW, kModelKnobY, kModelW - kModelKnobW, knobH);
     }
     modelBypassLed.setBounds(kModelX, kRackY + 14, 14, 14);
 

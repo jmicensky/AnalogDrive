@@ -30,7 +30,8 @@ struct LNLModel
 
     ModelType modelType = ModelType::LNL;
 
-    float sampleRate  = 44100.0f;
+    float sampleRate  = 44100.0f;         // rate the kernels below are currently built for
+    float captureSampleRate = 0.0f;       // rate the profile was measured at (from the JSON)
     float inputPadDb  = 0.0f;
 
     // L1 FIR (linear color)

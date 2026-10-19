@@ -1,16 +1,21 @@
 #pragma once
 #include <JuceHeader.h>
 
-// Dropdown for the distortion section's algorithmic mode (ParamIDs::algoMode).
+// Dropdown bound to a choice/int parameter — used for both the distortion
+// section's algorithmic mode (ParamIDs::algoMode) and the modeling section's
+// hardware profile (ParamIDs::modelSwitch).
 class ModelSelectorComponent : public juce::Component
 {
 public:
     ModelSelectorComponent(juce::AudioProcessorValueTreeState& apvts,
-                           const juce::StringArray& modeNames);
+                           const juce::String& paramID,
+                           const juce::StringArray& itemNames);
 
     void resized() override;
 
-    // Fired when the user picks a new mode (0-based index).
+    // Fired whenever the selection changes (0-based index) — by the user OR by
+    // host automation/state restore, since the attachment updates the combo
+    // with a synchronous notification.
     std::function<void(int)> onSelectionChanged;
 
 private:

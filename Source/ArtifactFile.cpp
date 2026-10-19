@@ -31,6 +31,7 @@ juce::String ArtifactFile::load(const juce::String& jsonText, LNLModel& model)
     auto& obj = *parsed.getDynamicObject();
 
     model.sampleRate    = static_cast<float>(static_cast<double>(obj.getProperty("sampleRate")));
+    model.captureSampleRate = model.sampleRate;
     model.inputPadDb    = static_cast<float>(static_cast<double>(obj.getProperty("inputPadDb")));
     model.l1Fir          = parseFloatArray(obj.getProperty("l1Fir"));
     model.frFrequencies  = parseFloatArray(obj.getProperty("frFrequencies"));

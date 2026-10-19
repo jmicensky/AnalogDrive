@@ -5,7 +5,8 @@
 struct ModelEntry
 {
     juce::String name;
-    LNLModel     model;
+    LNLModel     model;      // built for the current processing rate
+    LNLModel     captured;   // as loaded (after repair), at the capture rate — source for every rebuild
 };
 
 class ModelManager
@@ -14,22 +15,24 @@ public:
     // Load all bundled models from BinaryData. Call once at startup.
     void loadBuiltInModels(double sampleRate);
 
-    // Re-build FIRs when the DAW sample rate changes.
+    // Re-build FIRs and re-time captured kernels when the processing rate changes.
     void rebuildFirsForSampleRate(double sampleRate);
 
     int  getNumModels() const { return (int)models.size(); }
     const LNLModel& getModel(int index) const;
     juce::StringArray getModelNames() const;
 
-    // Number of curated bundled profiles (kBuiltInProfiles in ModelManager.cpp).
-    // Static and BinaryData-only, so it can be called before any ModelManager
-    // instance exists — needed to size the modelIndex parameter's range in the
-    // AudioProcessor's constructor, alongside SaturationModeEngine's algorithmic
-    // mode count (the modelIndex range spans both: profiles first, then modes).
+    // Curated bundled profiles (kBuiltInProfiles in ModelManager.cpp). Static, so
+    // they can be used before any ModelManager instance exists — the modelSwitch
+    // parameter's choices are built from these in createParameterLayout().
     static int countBuiltInModels();
+    static juce::StringArray getBuiltInModelNames();
 
 private:
-    void buildFir(LNLModel& m, double sr);
+    // Rebuilds L1 from the measured FR and re-times the L2 FIR and H2 kernels
+    // from the capture rate, so 44.1/48/96k sessions all match the hardware
+    // whether the profile was captured at 48k or 96k.
+    static void buildForSampleRate(ModelEntry& e, double sr);
 
     // Detects a per-gain-stage waveshaper/Volterra table that's either (a) a wide
     // dead zone of bit-exact zeros (a failed regression fit, e.g. a decorrelated or
