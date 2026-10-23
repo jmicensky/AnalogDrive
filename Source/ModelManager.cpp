@@ -98,12 +98,13 @@ static std::vector<float> toMinimumPhase(const std::vector<float>& h, float samp
 // louder stages were recorded into a clipping interface — scripts/
 // check_capture_clipping.py finds them. The model would otherwise reproduce the
 // interface's hard clipping as a crackle on transients. 0 = use every stage.
-//   CAPI VP28: CAPI_RETEST_QUICK, the least-clipped CAPI capture; its +3/+6 dB
-//              stages are flat-topped at -6 dBFS, so drive spans -18..0 dB.
+//   CAPI VP28: SystemCalExperiment_Capi, kept whole on purpose. Its -6..+6 dB
+//              stages are clipped, but A/B'd against the cleaner
+//              CAPI_RETEST_QUICK (4 clean stages) it still sounded better.
 //   Large Neo: Neotek_QUICK_THICK's 100% stage is lightly clipped.
 static const struct { const char* dataName; const char* displayName; int cleanStages; } kBuiltInProfiles[] =
 {
-    { "CAPI_RETEST_QUICK_model_json",        "CAPI VP28",        4 },
+    { "SystemCalExperiment_Capi_model_json", "CAPI VP28",        0 },
     { "AmtekSS_Bias_Standard_model_json",    "Amptek Saturator", 0 },
     { "Neotek_QUICK_THICK_model_json",       "Large Neo",        4 },
 };

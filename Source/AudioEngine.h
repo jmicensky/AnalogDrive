@@ -49,14 +49,16 @@ public:
 
     void process(juce::AudioBuffer<float>& buffer, const Params& p);
 
-    // Peak absolute sample value seen in the most recent process() call, per
-    // channel, before any processing (input) and after (output) — for the UI
-    // meters. Read from the message thread; written once per block on the audio
-    // thread, so a torn read is at worst one block stale.
-    float getInputPeakL()  const { return inputPeakL.load(std::memory_order_relaxed); }
-    float getInputPeakR()  const { return inputPeakR.load(std::memory_order_relaxed); }
-    float getOutputPeakL() const { return outputPeakL.load(std::memory_order_relaxed); }
-    float getOutputPeakR() const { return outputPeakR.load(std::memory_order_relaxed); }
+    // Loudest absolute sample per channel since the previous take*() call, before
+    // any processing (input) and after (output), plus whether it clipped. The
+    // audio thread only ever raises these; the UI timer reads-and-resets, so a
+    // transient landing between two UI frames is never lost.
+    //   Input clip:  a sample at or above 0 dBFS arrived.
+    //   Output clip: the signal reaching the final safety soft-clipper was over
+    //                0 dBFS (the soft-clipper itself keeps the output just below).
+    struct MeterReading { float peakL, peakR; bool clipL, clipR; };
+    MeterReading takeInputMeter()  { return take(inputMeter); }
+    MeterReading takeOutputMeter() { return take(outputMeter); }
 
     int getLatencySamples() const;
 
@@ -110,8 +112,34 @@ private:
     // UPSAMPLED signal taken immediately after upsampling (before any processing),
     // so wet and dry are already sample-aligned with no extra latency to compensate.
 
-    std::atomic<float> inputPeakL  { 0.0f }, inputPeakR  { 0.0f };
-    std::atomic<float> outputPeakL { 0.0f }, outputPeakR { 0.0f };
+    struct MeterState
+    {
+        std::atomic<float> peakL { 0.0f }, peakR { 0.0f };
+        std::atomic<bool>  clipL { false }, clipR { false };
+    };
+    MeterState inputMeter, outputMeter;
+
+    // Audio thread: raise the held peak (never lower it) and latch any clip.
+    static void report(MeterState& m, float peakL, float peakR, bool clipL, bool clipR)
+    {
+        auto raise = [](std::atomic<float>& a, float v)
+        {
+            float prev = a.load(std::memory_order_relaxed);
+            while (v > prev && !a.compare_exchange_weak(prev, v, std::memory_order_relaxed)) {}
+        };
+        raise(m.peakL, peakL);
+        raise(m.peakR, peakR);
+        if (clipL) m.clipL.store(true, std::memory_order_relaxed);
+        if (clipR) m.clipR.store(true, std::memory_order_relaxed);
+    }
+
+    static MeterReading take(MeterState& m)
+    {
+        return { m.peakL.exchange(0.0f,  std::memory_order_relaxed),
+                 m.peakR.exchange(0.0f,  std::memory_order_relaxed),
+                 m.clipL.exchange(false, std::memory_order_relaxed),
+                 m.clipR.exchange(false, std::memory_order_relaxed) };
+    }
 
     double currentSampleRate = 44100.0;
     int    lastNumChannels   = 2;

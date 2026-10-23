@@ -3,22 +3,6 @@
 LevelMeter::LevelMeter()
 {
     setOpaque(true);
-    startTimerHz(30);
-}
-
-LevelMeter::~LevelMeter()
-{
-    stopTimer();
-}
-
-void LevelMeter::pushLevels(float peakL, float peakR)
-{
-    // "Hold the loudest peak seen since the last UI poll" — the timer callback
-    // reads-and-resets, so this only ever needs to grow between polls.
-    float prevL = peakLAtomic.load(std::memory_order_relaxed);
-    while (peakL > prevL && !peakLAtomic.compare_exchange_weak(prevL, peakL, std::memory_order_relaxed)) {}
-    float prevR = peakRAtomic.load(std::memory_order_relaxed);
-    while (peakR > prevR && !peakRAtomic.compare_exchange_weak(prevR, peakR, std::memory_order_relaxed)) {}
 }
 
 float LevelMeter::dbToNorm(float db) const noexcept
@@ -26,23 +10,46 @@ float LevelMeter::dbToNorm(float db) const noexcept
     return juce::jlimit(0.0f, 1.0f, (db - kMinDb) / (kMaxDb - kMinDb));
 }
 
-void LevelMeter::timerCallback()
+void LevelMeter::updateChannel(Channel& c, float peak, bool clip)
 {
-    const float peakL = peakLAtomic.exchange(0.0f, std::memory_order_relaxed);
-    const float peakR = peakRAtomic.exchange(0.0f, std::memory_order_relaxed);
+    const float db = juce::Decibels::gainToDecibels(peak, kMinDb);
 
-    const float dbL = juce::Decibels::gainToDecibels(peakL, kMinDb);
-    const float dbR = juce::Decibels::gainToDecibels(peakR, kMinDb);
+    c.barDb = juce::jmax(db, c.barDb - kBarReleaseDb);
 
-    // Instant attack, gentle release, so transients are visible but the meter
-    // doesn't flicker to the floor between blocks.
-    displayL = juce::jmax(dbL, displayL - kDecayDbPerTick);
-    displayR = juce::jmax(dbR, displayR - kDecayDbPerTick);
+    if (db >= c.holdDb)                       { c.holdDb = db; c.holdTicks = kPeakHoldTicks; }
+    else if (c.holdTicks > 0)                 --c.holdTicks;
+    else                                      c.holdDb = juce::jmax(c.barDb, c.holdDb - kHoldFallDb);
 
-    // Digital readout: raw instantaneous peak, no hold/decay — updates every
-    // tick with whatever the true peak was since the last poll.
-    instDb = juce::jmax(dbL, dbR);
+    if (clip)                c.clipTicks = kClipHoldTicks;
+    else if (c.clipTicks > 0) --c.clipTicks;
+}
 
+void LevelMeter::update(float peakL, float peakR, bool clipL, bool clipR)
+{
+    updateChannel(left,  peakL, clipL);
+    updateChannel(right, peakR, clipR);
+
+    // The number only moves when a louder peak arrives, or once per hold period
+    // (then it shows the loudest peak of this frame), so it can actually be read.
+    const float db = juce::Decibels::gainToDecibels(juce::jmax(peakL, peakR), kMinDb);
+    if (db >= readoutDb || readoutTicks <= 0)
+    {
+        readoutDb    = db;
+        readoutTicks = kPeakHoldTicks;
+    }
+    else
+    {
+        --readoutTicks;
+    }
+
+    repaint();
+}
+
+void LevelMeter::mouseDown(const juce::MouseEvent&)
+{
+    left = right = Channel{};
+    readoutDb = kMinDb;
+    readoutTicks = 0;
     repaint();
 }
 
@@ -50,7 +57,7 @@ void LevelMeter::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff0a0a0a));
 
-    // ── Digital peak readout — top strip, instantaneous (no hold/decay) ───────
+    // ── Digital peak readout — top strip, held ────────────────────────────────
     {
         const juce::Rectangle<float> readoutRect(0.0f, 0.0f, (float)getWidth(), (float)kReadoutH);
         g.setColour(juce::Colour(0xff000000));
@@ -58,27 +65,41 @@ void LevelMeter::paint(juce::Graphics& g)
         g.setColour(juce::Colour(0xff1a2a1a));
         g.drawRect(readoutRect, 1.0f);
 
-        const juce::String text = (instDb <= kMinDb + 0.05f)
+        const juce::String text = (readoutDb <= kMinDb + 0.05f)
             ? juce::String("-INF")
-            : juce::String(instDb, 1);
-        g.setColour(juce::Colour(0xff33ff33));
+            : juce::String(readoutDb, 1);
+        g.setColour(readoutDb >= 0.0f ? juce::Colour(0xffff4040) : juce::Colour(0xff33ff33));
         g.setFont(juce::Font(juce::FontOptions().withName("Courier New").withHeight(9.5f)));
         g.drawFittedText(text, readoutRect.reduced(2.0f).toNearestInt(),
                          juce::Justification::centred, 1);
     }
 
-    const float w = (float)getWidth(), h = (float)getHeight() - (float)kReadoutH;
-    const float top = (float)kReadoutH;
+    const float w = (float)getWidth();
     const float gap = 2.0f;
     const float barW = (w - gap) * 0.5f;
 
-    auto drawBar = [&](float x, float norm)
+    // ── Clip dots — dim when idle so it's clear they exist, bright when lit ─
+    auto drawClipDot = [&](float x, const Channel& c)
+    {
+        const float d = 6.0f;
+        const juce::Rectangle<float> dot(x + (barW - d) * 0.5f, kReadoutH + (kClipRowH - d) * 0.5f, d, d);
+        g.setColour(c.clipTicks > 0 ? juce::Colour(0xffff2020) : juce::Colour(0xff3a1414));
+        g.fillEllipse(dot);
+    };
+    drawClipDot(0.0f,       left);
+    drawClipDot(barW + gap, right);
+
+    // ── Bars + peak-hold lines ───────────────────────────────────────────────
+    const float top = (float)(kReadoutH + kClipRowH);
+    const float h   = (float)getHeight() - top;
+
+    auto drawBar = [&](float x, const Channel& c)
     {
         const juce::Rectangle<float> full(x, top, barW, h);
         g.setColour(juce::Colour(0xff1a1a1a));
         g.fillRect(full);
 
-        const float barH = h * norm;
+        const float barH = h * dbToNorm(c.barDb);
         const juce::Rectangle<float> lit(x, top + h - barH, barW, barH);
 
         juce::ColourGradient grad(juce::Colour(0xff33cc33), 0.0f, top + h,
@@ -87,10 +108,17 @@ void LevelMeter::paint(juce::Graphics& g)
         g.setGradientFill(grad);
         g.fillRect(lit);
 
+        if (c.holdDb > kMinDb + 0.05f)
+        {
+            const float y = top + h - h * dbToNorm(c.holdDb);
+            g.setColour(c.holdDb >= 0.0f ? juce::Colour(0xffff4040) : juce::Colour(0xffe0e0e0));
+            g.fillRect(x + 1.0f, juce::jmax(top, y - 1.0f), barW - 2.0f, 2.0f);
+        }
+
         g.setColour(juce::Colour(0xff333333));
         g.drawRect(full, 1.0f);
     };
 
-    drawBar(0.0f,       dbToNorm(displayL));
-    drawBar(barW + gap, dbToNorm(displayR));
+    drawBar(0.0f,       left);
+    drawBar(barW + gap, right);
 }

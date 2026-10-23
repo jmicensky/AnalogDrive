@@ -72,7 +72,7 @@ file(GLOB FACTORY_PRESET_FILES CONFIGURE_DEPENDS
 # kBuiltInProfiles in Source/ModelManager.cpp.
 juce_add_binary_data(AnalogDrive_BinaryData
     SOURCES
-        ProfilerModels/CAPI_RETEST_QUICK/CAPI_RETEST_QUICK_model.json
+        ProfilerModels/SystemCalExperiment_Capi/SystemCalExperiment_Capi_model.json
         ProfilerModels/AmtekSS_Bias_Standard/AmtekSS_Bias_Standard_model.json
         ProfilerModels/Neotek_QUICK_THICK/Neotek_QUICK_THICK_model.json
         "small texture.jpg"

@@ -175,8 +175,7 @@ void AudioEngine::process(juce::AudioBuffer<float>& buffer, const Params& p)
             pkR = 0.f;
             for (int n = 0; n < numSamples; ++n) pkR = std::max(pkR, std::abs(d[n]));
         }
-        inputPeakL.store(pkL, std::memory_order_relaxed);
-        inputPeakR.store(pkR, std::memory_order_relaxed);
+        report(inputMeter, pkL, pkR, pkL >= 1.0f, pkR >= 1.0f);
     }
 
     const LNLModel& model = modelManager.getModel(p.modelSwitch);
@@ -365,13 +364,16 @@ void AudioEngine::process(juce::AudioBuffer<float>& buffer, const Params& p)
 
     // ── Output soft-limiter (tanh knee at ±0.95 FS) + output metering ─────────
     float outPkL = 0.f, outPkR = 0.f;
+    bool  outClipL = false, outClipR = false;
     for (int ch = 0; ch < numChannels; ++ch)
     {
         float* data = buffer.getWritePointer(ch);
         float  pk   = 0.f;
+        bool   clip = false;   // signal arriving here was over 0 dBFS
         for (int n = 0; n < numSamples; ++n)
         {
             const float ax = std::abs(data[n]);
+            clip = clip || ax >= 1.0f;
             if (ax > 0.95f)
             {
                 constexpr float knee = 0.05f;
@@ -379,9 +381,9 @@ void AudioEngine::process(juce::AudioBuffer<float>& buffer, const Params& p)
             }
             pk = std::max(pk, std::abs(data[n]));
         }
-        if (ch == 0) outPkL = pk; else if (ch == 1) outPkR = pk;
+        if (ch == 0)      { outPkL = pk; outClipL = clip; }
+        else if (ch == 1) { outPkR = pk; outClipR = clip; }
     }
-    if (numChannels < 2) outPkR = outPkL;
-    outputPeakL.store(outPkL, std::memory_order_relaxed);
-    outputPeakR.store(outPkR, std::memory_order_relaxed);
+    if (numChannels < 2) { outPkR = outPkL; outClipR = outClipL; }
+    report(outputMeter, outPkL, outPkR, outClipL, outClipR);
 }

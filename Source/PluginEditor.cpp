@@ -168,8 +168,10 @@ void AnalogDriveEditor::updateFrequencyResponseDisplay()
 void AnalogDriveEditor::refreshMeters()
 {
     auto& eng = pluginProcessor.getAudioEngine();
-    inputMeter.pushLevels(eng.getInputPeakL(),   eng.getInputPeakR());
-    outputMeter.pushLevels(eng.getOutputPeakL(), eng.getOutputPeakR());
+    const auto in  = eng.takeInputMeter();
+    const auto out = eng.takeOutputMeter();
+    inputMeter .update(in.peakL,  in.peakR,  in.clipL,  in.clipR);
+    outputMeter.update(out.peakL, out.peakR, out.clipL, out.clipR);
 }
 
 // ── Static chassis helpers (ported from SaturationModel1) ──────────────────────

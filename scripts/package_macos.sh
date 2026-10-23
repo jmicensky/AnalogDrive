@@ -18,7 +18,7 @@ DIST_NAME="AnalogDrive-macOS-v${VERSION}"
 DIST_DIR="dist/${DIST_NAME}"
 
 echo "== Configuring Release build (universal arm64+x86_64) =="
-cmake -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
+cmake -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DJUCE_COPY_PLUGIN_AFTER_BUILD=OFF  # export only; don't install into this Mac
 
 echo "== Building (VST3 + AU + AAX + Standalone) =="
 cmake --build "$BUILD_DIR" --target AnalogDrive_All -j"$(sysctl -n hw.ncpu)"
