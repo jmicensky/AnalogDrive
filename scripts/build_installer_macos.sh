@@ -30,6 +30,10 @@ make_component_pkg() {
   mkdir -p "$root"
   ditto "$src" "$root/$(basename "$src")"
   xattr -cr "$root"
+  # Ad-hoc sign every bundle here rather than trusting the build: with
+  # JUCE_COPY_PLUGIN_AFTER_BUILD=OFF (CI, package_macos.sh) the AU comes out
+  # with no bundle signature, which Apple Silicon hosts may refuse to load.
+  codesign --force --deep --sign - "$root/$(basename "$src")" >/dev/null
 
   # VST3, AU and Standalone all share one bundle ID. Left relocatable,
   # Installer would "upgrade" whichever copy it finds first anywhere on disk
